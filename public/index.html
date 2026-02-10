@@ -1,12 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Shiny Credit</title>
-	</head>
-	<body>
-		<h1>Shiny Credit</h1>
-		<p>Worker is running. Edit <code>src/index.js</code> to get started.</p>
-	</body>
+<head>
+  <meta charset="UTF-8" />
+  <title>Shopify App</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 16px;
+    }
+    button {
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    ul {
+      margin-top: 16px;
+    }
+    li {
+      margin-bottom: 6px;
+    }
+  </style>
+</head>
+<body>
+  <h2>My Shopify App</h2>
+
+  <button id="load">Load Products</button>
+
+  <ul id="products"></ul>
+
+  <script>
+    const shop = new URLSearchParams(window.location.search).get("shop")
+    const button = document.getElementById("load")
+    const list = document.getElementById("products")
+
+    if (!shop) {
+      list.innerHTML = "<li>Missing shop parameter</li>"
+    }
+
+    button.addEventListener("click", async () => {
+      list.innerHTML = "<li>Loading…</li>"
+
+      try {
+        const res = await fetch(`/products?shop=${shop}`)
+        const data = await res.json()
+
+        const products =
+          data?.data?.products?.edges || []
+
+        list.innerHTML = ""
+
+        if (!products.length) {
+          list.innerHTML = "<li>No products found</li>"
+          return
+        }
+
+        for (const { node } of products) {
+          const li = document.createElement("li")
+          li.textContent = node.title
+          list.appendChild(li)
+        }
+      } catch (err) {
+        list.innerHTML = "<li>Error loading products</li>"
+      }
+    })
+  </script>
+</body>
 </html>
