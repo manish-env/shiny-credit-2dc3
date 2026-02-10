@@ -33,21 +33,27 @@
     const list = document.getElementById("products")
 
     if (!shop) {
-      list.innerHTML = "<li>Missing shop parameter</li>"
+      list.innerHTML = "<li>Open this app from the Shopify admin (missing <code>?shop=...</code>).</li>"
+      button.disabled = true
     }
 
     button.addEventListener("click", async () => {
+      if (!shop) return
       list.innerHTML = "<li>Loading…</li>"
 
       try {
-        const res = await fetch(`/products?shop=${shop}`)
-        const data = await res.json()
+        const res = await fetch(`/products?shop=${encodeURIComponent(shop)}`)
+        const data = await res.json().catch(() => ({}))
+        const errMsg = data?.error || data?.message
 
-        const products =
-          data?.data?.products?.edges || []
+        if (!res.ok) {
+          list.innerHTML = `<li>${errMsg || "Error loading products"} (${res.status})</li>`
+          return
+        }
+
+        const products = data?.data?.products?.edges || []
 
         list.innerHTML = ""
-
         if (!products.length) {
           list.innerHTML = "<li>No products found</li>"
           return
@@ -59,7 +65,7 @@
           list.appendChild(li)
         }
       } catch (err) {
-        list.innerHTML = "<li>Error loading products</li>"
+        list.innerHTML = "<li>Error loading products. Check the console.</li>"
       }
     })
   </script>

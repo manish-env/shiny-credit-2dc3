@@ -11,5 +11,13 @@ export async function shopifyGraphQL(shop, token, query) {
     }
   )
 
-  return res.json()
+  const text = await res.text()
+  if (!res.ok) {
+    throw new Error(`Shopify API ${res.status}: ${text.slice(0, 200)}`)
+  }
+  try {
+    return JSON.parse(text)
+  } catch {
+    throw new Error("Invalid JSON from Shopify API")
+  }
 }

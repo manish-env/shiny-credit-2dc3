@@ -3,15 +3,26 @@
 	"name": "shiny-credit-2dc3",
 	"main": "src/index.js",
 	"compatibility_date": "2026-02-10",
-	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+	"compatibility_flags": [
+		"nodejs_compat",
+		"global_fetch_strictly_public"
+	],
 	"assets": {
 		"directory": "./public"
 	},
 	"observability": {
 		"enabled": true
 	},
+	"kv_namespaces": [
+		
+		{
+			"binding": "TOKENS",
+			"id": "beae6141b3d84938afa4227e34a59f03",
+			"remote": true
+		}
+	],
 	"vars": {
-    "SHOPIFY_API_KEY": "27c0a529c04d664380be1b8104baa5d9",
-    "APP_URL": "https://shiny-credit-2dc3.manishbsn188.workers.dev"
-  }
+		"SHOPIFY_API_KEY": "27c0a529c04d664380be1b8104baa5d9",
+		"APP_URL": "https://shiny-credit-2dc3.manishbsn188.workers.dev"
+	}
 }

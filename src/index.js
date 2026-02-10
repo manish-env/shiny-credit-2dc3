@@ -5,24 +5,31 @@ import { frontendRoute } from "./routes/frontend.js"
 
 export default {
   async fetch(req, env) {
-    const url = new URL(req.url)
+    try {
+      const url = new URL(req.url)
 
-    if (url.pathname === "/auth") {
-      return authRoute(req, env)
+      if (url.pathname === "/auth") {
+        return await authRoute(req, env)
+      }
+
+      if (url.pathname === "/auth/callback") {
+        return await callbackRoute(req, env)
+      }
+
+      if (url.pathname === "/products") {
+        return await productsRoute(req, env)
+      }
+
+      if (url.pathname === "/") {
+        return await frontendRoute(req, env)
+      }
+
+      return new Response("Not Found", { status: 404 })
+    } catch (err) {
+      return new Response(
+        JSON.stringify({ error: "Worker error", message: err?.message ?? "Unknown error" }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      )
     }
-
-    if (url.pathname === "/auth/callback") {
-      return callbackRoute(req, env)
-    }
-
-    if (url.pathname === "/products") {
-      return productsRoute(req, env)
-    }
-
-    if (url.pathname === "/") {
-      return frontendRoute(req, env)
-    }
-
-    return new Response("Not Found", { status: 404 })
   }
 }
