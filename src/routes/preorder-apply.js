@@ -17,8 +17,9 @@ function json(res, data, status = 200) {
 }
 
 function normalizeBoolean(v) {
-  if (v === true || v === "true" || v === "1" || String(v).toLowerCase() === "yes") return "true"
-  return "false"
+  const s = String(v ?? "").trim()
+  if (s === "" || s === "false" || s === "0" || s.toLowerCase() === "no") return "false"
+  return "true"
 }
 
 function normalizeInt(v) {

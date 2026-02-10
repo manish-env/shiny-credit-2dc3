@@ -175,7 +175,7 @@
         if (!sku) continue
         out.push({
           sku,
-          is_preorder: preorderIdx >= 0 ? (cells[preorderIdx] ?? "false") : "false",
+          is_preorder: preorderIdx >= 0 ? (cells[preorderIdx] ?? "true") : "true",
           preorder_limit: limitIdx >= 0 ? (cells[limitIdx] ?? "0") : "0",
           preorder_message: msgIdx >= 0 ? (cells[msgIdx] ?? "") : ""
         })
