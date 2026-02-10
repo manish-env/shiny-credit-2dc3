@@ -1,6 +1,8 @@
 import { authRoute } from "./routes/auth.js"
 import { callbackRoute } from "./routes/callback.js"
 import { productsRoute } from "./routes/products.js"
+import { metafieldRoute } from "./routes/metafield.js"
+import { preorderApplyRoute } from "./routes/preorder-apply.js"
 import { frontendRoute } from "./routes/frontend.js"
 
 export default {
@@ -18,6 +20,14 @@ export default {
 
       if (url.pathname === "/products") {
         return await productsRoute(req, env)
+      }
+
+      if (url.pathname === "/metafield") {
+        return await metafieldRoute(req, env)
+      }
+
+      if (url.pathname === "/preorder/apply") {
+        return await preorderApplyRoute(req, env)
       }
 
       if (url.pathname === "/") {

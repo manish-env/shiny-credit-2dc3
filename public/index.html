@@ -108,6 +108,15 @@
       cursor: not-allowed;
     }
 
+    .btn-secondary {
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background: rgba(13, 107, 92, 0.08);
+    }
+
     .products-section h2 {
       font-size: 1rem;
       font-weight: 600;
@@ -119,35 +128,120 @@
       list-style: none;
       margin: 0;
       padding: 0;
-      display: grid;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .product-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .product-block-header {
+      padding: 14px 18px;
+      font-weight: 600;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+
+    .variants-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .variant-row {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
       gap: 12px;
     }
 
-    #products .product-card {
+    .variant-row:last-of-type { border-bottom: none; }
+
+    .variant-info {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
-      justify-content: space-between;
-      padding: 16px 18px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      gap: 8px 16px;
     }
 
-    #products .product-card:hover {
-      border-color: var(--accent);
-      box-shadow: var(--shadow);
-    }
-
-    #products .product-title {
+    .variant-title {
       font-weight: 500;
       color: var(--text);
     }
 
-    #products .product-id {
+    .variant-sku {
       font-size: 0.8125rem;
       color: var(--text-muted);
       font-family: ui-monospace, monospace;
+    }
+
+    .metafields-existing {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+
+    .metafields-existing span {
+      display: inline-block;
+      margin-right: 8px;
+      margin-bottom: 4px;
+      padding: 4px 8px;
+      background: var(--bg);
+      border-radius: 6px;
+    }
+
+    .metafield-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto auto auto;
+      gap: 8px;
+      align-items: end;
+      flex-wrap: wrap;
+    }
+
+    .metafield-form .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .metafield-form label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .metafield-form input,
+    .metafield-form select {
+      padding: 8px 10px;
+      font-family: inherit;
+      font-size: 0.875rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface);
+    }
+
+    .metafield-form .btn-sm {
+      padding: 8px 14px;
+      font-size: 0.875rem;
+    }
+
+    .form-feedback {
+      font-size: 0.8125rem;
+      grid-column: 1 / -1;
+    }
+
+    .form-feedback.success { color: var(--accent); }
+    .form-feedback.error { color: var(--error); }
+
+    @media (max-width: 640px) {
+      .metafield-form { grid-template-columns: 1fr 1fr; }
+      .metafield-form .btn-sm { grid-column: span 2; }
     }
 
     .state-message {
@@ -215,7 +309,6 @@
     @media (min-width: 640px) {
       body { padding: 32px; }
       .card { padding: 28px; }
-      #products { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
@@ -231,6 +324,7 @@
         <button type="button" class="btn" id="load">
           Load products
         </button>
+        <a href="#" target="_blank" rel="noopener" class="btn btn-secondary" id="upload-link">Upload preorder sheet</a>
       </div>
 
       <section class="products-section" aria-live="polite">
@@ -252,6 +346,7 @@
 
     if (shop) {
       if (initialState) initialState.remove()
+      document.getElementById("upload-link").href = "/preorder.html?shop=" + encodeURIComponent(shop)
       const emptyLi = document.createElement("li")
       emptyLi.className = "state-message"
       emptyLi.id = "placeholder"
@@ -293,17 +388,111 @@
       )
     }
 
+    const METAFIELD_TYPES = [
+      { value: "single_line_text_field", label: "Text" },
+      { value: "multi_line_text_field", label: "Multi-line text" },
+      { value: "number_integer", label: "Integer" },
+      { value: "number_decimal", label: "Decimal" },
+      { value: "boolean", label: "Boolean" },
+      { value: "date", label: "Date" },
+      { value: "date_time", label: "Date & time" },
+      { value: "json", label: "JSON" }
+    ]
+
     function renderProducts(edges) {
-      const items = edges.map(({ node }) => {
+      const items = edges.map(({ node: product }) => {
         const li = document.createElement("li")
-        li.className = "product-card"
+        li.className = "product-block"
+        const variants = product.variants?.edges ?? []
+        const variantRows = variants.map(({ node: v }) => {
+          const metafields = v.metafields?.edges ?? []
+          const metaList = metafields.length
+            ? metafields.map(({ node: m }) =>
+                `<span>${escapeHtml(m.namespace)}.${escapeHtml(m.key)} = ${escapeHtml(String(m.value).slice(0, 40))}${String(m.value).length > 40 ? "…" : ""}</span>`
+              ).join("")
+            : ""
+          const formId = "mf-" + (v.id || "").replace(/\W/g, "-")
+          return `
+            <li class="variant-row" data-variant-id="${escapeHtml(v.id)}">
+              <div class="variant-info">
+                <span class="variant-title">${escapeHtml(v.title || "Default")}</span>
+                ${v.sku ? `<span class="variant-sku">SKU: ${escapeHtml(v.sku)}</span>` : ""}
+              </div>
+              ${metaList ? `<div class="metafields-existing">${metaList}</div>` : ""}
+              <form class="metafield-form" id="${formId}" data-variant-id="${escapeHtml(v.id)}">
+                <div class="field">
+                  <label for="${formId}-ns">Namespace</label>
+                  <input id="${formId}-ns" name="namespace" placeholder="custom" required />
+                </div>
+                <div class="field">
+                  <label for="${formId}-key">Key</label>
+                  <input id="${formId}-key" name="key" placeholder="credit_value" required />
+                </div>
+                <div class="field">
+                  <label for="${formId}-value">Value</label>
+                  <input id="${formId}-value" name="value" placeholder="0" />
+                </div>
+                <div class="field">
+                  <label for="${formId}-type">Type</label>
+                  <select id="${formId}-type" name="type">
+                    ${METAFIELD_TYPES.map(t => `<option value="${escapeHtml(t.value)}">${escapeHtml(t.label)}</option>`).join("")}
+                  </select>
+                </div>
+                <button type="submit" class="btn btn-sm">Add metafield</button>
+                <div class="form-feedback" role="status" aria-live="polite"></div>
+              </form>
+            </li>
+          `
+        }).join("")
+        const variantsHtml = variantRows || "<li class=\"variant-row\"><span class=\"variant-title\">No variants</span></li>"
         li.innerHTML = `
-          <span class="product-title">${escapeHtml(node.title || "Untitled")}</span>
-          <span class="product-id">${escapeHtml((node.id || "").split("/").pop() || "")}</span>
+          <div class="product-block-header">${escapeHtml(product.title || "Untitled")}</div>
+          <ul class="variants-list">${variantsHtml}</ul>
         `
         return li
       })
       setListContent(items)
+      attachMetafieldForms()
+    }
+
+    function attachMetafieldForms() {
+      list.querySelectorAll(".metafield-form").forEach(form => {
+        form.onsubmit = async (e) => {
+          e.preventDefault()
+          const variantId = form.getAttribute("data-variant-id")
+          const fd = new FormData(form)
+          const namespace = (fd.get("namespace") || "").trim()
+          const key = (fd.get("key") || "").trim()
+          const value = String(fd.get("value") ?? "")
+          const type = fd.get("type") || "single_line_text_field"
+          const feedback = form.querySelector(".form-feedback")
+          feedback.textContent = ""
+          feedback.className = "form-feedback"
+          const btn = form.querySelector('button[type="submit"]')
+          btn.disabled = true
+          try {
+            const res = await fetch(`/metafield?shop=${encodeURIComponent(shop)}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ variantId, namespace, key, value, type })
+            })
+            const data = await res.json().catch(() => ({}))
+            if (res.ok && data.success) {
+              feedback.textContent = "Metafield saved."
+              feedback.className = "form-feedback success"
+              setTimeout(() => { feedback.textContent = "" }, 3000)
+            } else {
+              const msg = data?.userErrors?.[0]?.message || data?.error || "Failed to save"
+              feedback.textContent = msg
+              feedback.className = "form-feedback error"
+            }
+          } catch (err) {
+            feedback.textContent = "Network error."
+            feedback.className = "form-feedback error"
+          }
+          btn.disabled = false
+        }
+      })
     }
 
     function escapeHtml(str) {

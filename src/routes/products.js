@@ -28,11 +28,31 @@ export async function productsRoute(req, env) {
 
   const query = `
     {
-      products(first: 10) {
+      products(first: 25) {
         edges {
           node {
             id
             title
+            variants(first: 50) {
+              edges {
+                node {
+                  id
+                  title
+                  sku
+                  metafields(first: 20) {
+                    edges {
+                      node {
+                        id
+                        namespace
+                        key
+                        value
+                        type
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
