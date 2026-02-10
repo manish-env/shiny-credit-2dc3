@@ -54,43 +54,39 @@ export async function metafieldsSetBatch(shop, token, inputs) {
   return data?.data?.metafieldsSet ?? { metafields: [], userErrors: [] }
 }
 
-const PRODUCTS_VARIANTS_QUERY = `
-  query ProductsVariants($cursor: String) {
-    products(first: 50, after: $cursor) {
+const PRODUCT_VARIANTS_QUERY = `
+  query ProductVariantsPage($cursor: String) {
+    productVariants(first: 250, after: $cursor) {
       pageInfo { hasNextPage endCursor }
       edges {
         node {
           id
-          variants(first: 100) {
-            edges {
-              node {
-                id
-                sku
-              }
-            }
-          }
+          sku
         }
       }
     }
   }
 `
 
-/** Build a map of variant SKU -> variant GID (paginates until all products are fetched). */
+/** Build a map of variant SKU (lowercase) -> variant GID. Uses productVariants query so all variants with SKU are found. */
 export async function fetchSkuToVariantIdMap(shop, token) {
   const map = /** @type {Record<string, string>} */ ({})
   let cursor = null
   do {
-    const data = await shopifyGraphQL(shop, token, PRODUCTS_VARIANTS_QUERY, { cursor })
-    const products = data?.data?.products
-    if (!products) break
-    for (const { node: product } of products.edges ?? []) {
-      for (const { node: v } of product.variants?.edges ?? []) {
-        if (v.sku != null && v.sku !== "") {
-          map[v.sku] = v.id
-        }
+    const data = await shopifyGraphQL(shop, token, PRODUCT_VARIANTS_QUERY, { cursor })
+    if (data?.errors?.length) {
+      const msg = data.errors.map((e) => e.message).join("; ")
+      throw new Error("GraphQL: " + msg)
+    }
+    const connection = data?.data?.productVariants
+    if (!connection) break
+    for (const { node: v } of connection.edges ?? []) {
+      if (v?.sku != null && String(v.sku).trim() !== "") {
+        const key = String(v.sku).trim().toLowerCase()
+        map[key] = v.id
       }
     }
-    const pageInfo = products.pageInfo
+    const pageInfo = connection.pageInfo
     if (!pageInfo?.hasNextPage) break
     cursor = pageInfo.endCursor
   } while (true)

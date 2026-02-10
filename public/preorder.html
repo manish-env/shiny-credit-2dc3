@@ -261,11 +261,18 @@
         })
         const data = await res.json().catch(() => ({}))
         if (res.ok) {
-          const msg = [
-            "Done. Applied: " + (data.applied ?? 0) + " variant(s).",
-            data.skipped > 0 ? " Skipped (SKU not in store): " + data.skipped + "." : "",
-            data.errors?.length ? " Errors: " + data.errors.map((e) => e.message).join("; ") : ""
-          ].join("")
+          const storeCount = data.storeVariantSkusCount ?? 0
+          const applied = data.applied ?? 0
+          const skipped = data.skipped ?? 0
+          let msg = "Done. Applied: " + applied + " variant(s)."
+          if (storeCount === 0) {
+            msg = "No variants with a SKU were found in your store. Add SKUs to your product variants in Shopify, then try again."
+          } else if (applied === 0 && skipped > 0) {
+            msg = "Store has " + storeCount + " variant(s) with SKU, but none matched your sheet. Check that your CSV SKUs match exactly (matching is case-insensitive). Skipped: " + skipped + " row(s)."
+          } else if (skipped > 0) {
+            msg += " Skipped (SKU not in store): " + skipped + ". "
+          }
+          if (data.errors?.length) msg += " Errors: " + data.errors.map((e) => e.message).join("; ")
           setFeedback(msg, data.success ? "success" : "error")
         } else {
           setFeedback(data.error || "Request failed", "error")
