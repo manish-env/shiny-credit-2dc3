@@ -306,6 +306,33 @@
       color: var(--text-muted);
     }
 
+    .preorder-section h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0 0 16px 0;
+      color: var(--text);
+    }
+
+    .preorder-table-wrap { overflow-x: auto; margin-top: 12px; }
+    .preorder-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    .preorder-table th,
+    .preorder-table td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .preorder-table th {
+      font-weight: 600;
+      color: var(--text);
+      background: var(--bg);
+    }
+    .preorder-table tbody tr:hover td { background: rgba(0,0,0,0.02); }
+    .preorder-table .sku-cell { font-family: ui-monospace, monospace; color: var(--text-muted); }
+
     @media (min-width: 640px) {
       body { padding: 32px; }
       .card { padding: 28px; }
@@ -336,6 +363,18 @@
         </ul>
       </section>
     </div>
+
+    <div class="card">
+      <div class="actions">
+        <button type="button" class="btn" id="load-preorder">Load preorder products</button>
+      </div>
+      <section class="preorder-section" aria-live="polite">
+        <h2>Preorder products</h2>
+        <div id="preorder-content">
+          <div class="state-message">Click “Load preorder products” to show variants with preorder enabled.</div>
+        </div>
+      </section>
+    </div>
   </div>
 
   <script>
@@ -343,6 +382,9 @@
     const button = document.getElementById("load")
     const list = document.getElementById("products")
     const initialState = document.getElementById("initial-state")
+
+    const preorderContent = document.getElementById("preorder-content")
+    const loadPreorderBtn = document.getElementById("load-preorder")
 
     if (shop) {
       if (initialState) initialState.remove()
@@ -354,6 +396,7 @@
       list.appendChild(emptyLi)
     } else {
       button.disabled = true
+      loadPreorderBtn.disabled = true
     }
 
     function setListContent(htmlOrElements) {
@@ -526,6 +569,56 @@
       } catch (err) {
         showError("Could not load products. Check your connection and try again.")
       }
+    })
+
+    function renderPreorderList(rows) {
+      if (!rows.length) {
+        preorderContent.innerHTML = '<div class="state-message">No preorder products. Use the preorder sheet upload to enable preorder for variants.</div>'
+        return
+      }
+      const tableHtml = `
+        <div class="preorder-table-wrap">
+          <table class="preorder-table">
+            <thead>
+              <tr>
+                <th>SKU</th>
+                <th>Product title</th>
+                <th>Preorder limit</th>
+                <th>Preorder message</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map((r) => `
+                <tr>
+                  <td class="sku-cell">${escapeHtml(r.sku)}</td>
+                  <td>${escapeHtml(r.productTitle)}</td>
+                  <td>${escapeHtml(r.preorderLimit)}</td>
+                  <td>${escapeHtml(r.preorderMessage)}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `
+      preorderContent.innerHTML = tableHtml
+    }
+
+    loadPreorderBtn.addEventListener("click", async () => {
+      if (!shop) return
+      loadPreorderBtn.disabled = true
+      preorderContent.innerHTML = '<div class="state-message"><div class="loader"><span class="loader-dot"></span><span class="loader-dot"></span><span class="loader-dot"></span></div></div>'
+      try {
+        const res = await fetch(`/preorder/list?shop=${encodeURIComponent(shop)}`)
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          preorderContent.innerHTML = `<div class="state-message error">${escapeHtml(data?.error || "Failed to load")}</div>`
+          return
+        }
+        renderPreorderList(data?.rows ?? [])
+      } catch (err) {
+        preorderContent.innerHTML = '<div class="state-message error">Could not load preorder list.</div>'
+      }
+      loadPreorderBtn.disabled = false
     })
   </script>
 </body>

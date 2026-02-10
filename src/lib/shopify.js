@@ -92,3 +92,54 @@ export async function fetchSkuToVariantIdMap(shop, token) {
   } while (true)
   return map
 }
+
+const PREORDER_VARIANTS_QUERY = `
+  query PreorderVariantsPage($cursor: String) {
+    productVariants(first: 250, after: $cursor) {
+      pageInfo { hasNextPage endCursor }
+      edges {
+        node {
+          id
+          sku
+          product { title }
+          metafields(first: 10, namespace: "preorder") {
+            edges { node { key value } }
+          }
+        }
+      }
+    }
+  }
+`
+
+/** Returns list of { sku, productTitle, preorderLimit, preorderMessage } for variants where is_preorder is true. */
+export async function fetchPreorderList(shop, token) {
+  const rows = []
+  let cursor = null
+  do {
+    const data = await shopifyGraphQL(shop, token, PREORDER_VARIANTS_QUERY, { cursor })
+    if (data?.errors?.length) {
+      const msg = data.errors.map((e) => e.message).join("; ")
+      throw new Error("GraphQL: " + msg)
+    }
+    const connection = data?.data?.productVariants
+    if (!connection) break
+    for (const { node: v } of connection.edges ?? []) {
+      const metaList = v.metafields?.edges ?? []
+      const meta = {}
+      for (const { node: m } of metaList) {
+        if (m?.key) meta[m.key] = m.value ?? ""
+      }
+      if (meta.is_preorder !== "true") continue
+      rows.push({
+        sku: v.sku ?? "",
+        productTitle: v.product?.title ?? "",
+        preorderLimit: meta.preorder_limit ?? "0",
+        preorderMessage: meta.preorder_message ?? ""
+      })
+    }
+    const pageInfo = connection.pageInfo
+    if (!pageInfo?.hasNextPage) break
+    cursor = pageInfo.endCursor
+  } while (true)
+  return rows
+}

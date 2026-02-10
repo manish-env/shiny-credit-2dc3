@@ -3,6 +3,7 @@ import { callbackRoute } from "./routes/callback.js"
 import { productsRoute } from "./routes/products.js"
 import { metafieldRoute } from "./routes/metafield.js"
 import { preorderApplyRoute } from "./routes/preorder-apply.js"
+import { preorderListRoute } from "./routes/preorder-list.js"
 import { frontendRoute } from "./routes/frontend.js"
 
 export default {
@@ -28,6 +29,10 @@ export default {
 
       if (url.pathname === "/preorder/apply") {
         return await preorderApplyRoute(req, env)
+      }
+
+      if (url.pathname === "/preorder/list") {
+        return await preorderListRoute(req, env)
       }
 
       if (url.pathname === "/") {
